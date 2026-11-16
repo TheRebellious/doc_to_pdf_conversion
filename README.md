@@ -26,7 +26,9 @@ Required system tools:
 
 The LaTeX header (`header.tex`) uses packages including `booktabs`, `longtable`, `array`, `tabularx`, `colortbl`, `xcolor`, `etoolbox`, and `enumitem`. Install a TeX distribution that provides these packages.
 
-### Install on Ubuntu / Debian
+### Install on:
+
+#### Ubuntu / Debian
 
 ```bash
 sudo apt update
@@ -37,6 +39,19 @@ sudo apt install -y \
   texlive-xetex \
   texlive-latex-extra \
   texlive-fonts-recommended
+```
+
+### Fedora
+
+```bash
+sudo dnf upgrade --refresh -y
+sudo dnf install -y \
+  python3 \
+  make \
+  pandoc \
+  texlive-xetex \
+  texlive-collection-fontsrecommended \
+  texlive-collection-latexextra
 ```
 
 The Makefile requests the **Arial** main font. Ensure Arial is installed and discoverable by XeLaTeX on your system. If it is not available, either install a licensed Arial font or change `mainfont:Arial` in the Makefile to an installed substitute (for example, `Liberation Sans`).
@@ -151,12 +166,12 @@ Install the TeX Live package that provides the missing LaTeX package. On Ubuntu/
 
 ## Repository files
 
-| File | Purpose |
-| --- | --- |
-| `convert_doc.py` | Extracts MIME/HTML content and images and generates Markdown |
-| `convert_doc_to_pdf.sh` | Runs the full DOC-to-PDF pipeline |
-| `Makefile` | Configures and runs Markdown-to-PDF generation |
-| `header.tex` | LaTeX packages and document styling |
+| File                    | Purpose                                                      |
+|-------------------------|--------------------------------------------------------------|
+| `convert_doc.py`        | Extracts MIME/HTML content and images and generates Markdown |
+| `convert_doc_to_pdf.sh` | Runs the full DOC-to-PDF pipeline                            |
+| `Makefile`              | Configures and runs Markdown-to-PDF generation               |
+| `header.tex`            | LaTeX packages and document styling                          |
 
 ## Limitations
 
@@ -164,3 +179,9 @@ Install the TeX Live package that provides the missing LaTeX package. On Ubuntu/
 - The converter expects an HTML part encoded in UTF-8 (with replacement for invalid byte sequences).
 - PDF generation requires a working XeLaTeX installation and an available font matching the Makefile's configured main font.
 - The project does not currently provide a Windows-native wrapper, automated test suite, or dependency lockfile.
+
+## Tested on:
+| OS        | Shell       | Result          |
+|-----------|-------------|-----------------|
+| Debian 13 | bash        | Works perfectly |
+| Fedora 45 | fish & bash | Works perfectly |
