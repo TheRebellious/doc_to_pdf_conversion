@@ -9,7 +9,7 @@ Convert supported Word `.doc` exports into Markdown and then PDF. The converter 
 
 1. `convert_doc.py` reads the MIME message, extracts its HTML content and embedded images, and writes a Markdown file alongside an images directory.
 2. Pandoc converts the HTML content to GitHub-flavoured Markdown.
-3. The Makefile invokes Pandoc with XeLaTeX to generate a styled PDF.
+3. The `md_to_pdf` Git submodule invokes Pandoc with XeLaTeX to generate a styled PDF.
 4. `convert_doc_to_pdf.sh` runs the complete pipeline in a temporary working directory and copies the resulting PDF to the current directory.
 
 ## Requirements
@@ -23,8 +23,9 @@ Required system tools:
 - XeLaTeX (provided by a TeX Live installation)
 - GNU Make
 - Bash
+- The `md_to_pdf` Git submodule
 
-The LaTeX header (`header.tex`) uses packages including `booktabs`, `longtable`, `array`, `tabularx`, `colortbl`, `xcolor`, `etoolbox`, and `enumitem`. Install a TeX distribution that provides these packages.
+The LaTeX header (`md_to_pdf/header.tex`) uses packages including `booktabs`, `longtable`, `array`, `tabularx`, `colortbl`, `xcolor`, `etoolbox`, and `enumitem`. Install a TeX distribution that provides these packages.
 
 ### Install on:
 
@@ -54,7 +55,7 @@ sudo dnf install -y \
   texlive-collection-latexextra
 ```
 
-The Makefile requests the **Arial** main font. Ensure Arial is installed and discoverable by XeLaTeX on your system. If it is not available, either install a licensed Arial font or change `mainfont:Arial` in the Makefile to an installed substitute (for example, `Liberation Sans`).
+The Makefile requests **Arial** for the main text and **DejaVu Sans Mono** for monospaced text. Ensure both fonts are installed and discoverable by XeLaTeX. If Arial is not available, change the `mainfont` setting in `md_to_pdf/Makefile` to an installed substitute (for example, `Liberation Sans`). You can override the monospace font with `PDF_MONOFONT`.
 
 ### Check the installed tools
 
@@ -70,8 +71,14 @@ make --version
 Clone the repository:
 
 ```bash
-git clone https://github.com/TheRebellious/doc_to_pdf_conversion.git
+git clone --recurse-submodules https://github.com/TheRebellious/doc_to_pdf_conversion.git
 cd doc_to_pdf_conversion
+```
+
+If you already cloned the repository without its submodule, initialize it with:
+
+```bash
+git submodule update --init --recursive
 ```
 
 Make the wrapper executable if necessary:
@@ -122,17 +129,17 @@ make pdf MD_FILE=/path/to/document.md
 You can override the output name, PDF engine, or page margin:
 
 ```bash
-make pdf MD_FILE=document.md PDF_FILE=output.pdf PDF_ENGINE=xelatex PDF_MARGIN=0.5in
+make pdf MD_FILE=document.md PDF_FILE=output.pdf PDF_ENGINE=xelatex PDF_MARGIN=0.5in PDF_MONOFONT="DejaVu Sans Mono"
 ```
 
-The Makefile defaults to the first `.md` file in the repository directory and writes a PDF with the same base name.
+The Makefile delegates PDF generation to the `md_to_pdf` submodule and defaults to the first `.md` file in the repository directory. The standalone Markdown-to-PDF tool and its options are documented in [`md_to_pdf/README.md`](md_to_pdf/README.md).
 
 ## Output and formatting
 
 - Embedded images are extracted and referenced from the generated Markdown.
 - Tables are converted to Markdown tables, with special handling for availability-highlight tables.
-- The PDF uses XeLaTeX, 11pt text, 1.15 line spacing, and a default page margin of 0.5 inches.
-- Table and list styling is defined in `header.tex`.
+- The PDF uses XeLaTeX, Arial 11pt text, DejaVu Sans Mono for code, 1.15 line spacing, and a default page margin of 0.5 inches.
+- Table and list styling is defined in `md_to_pdf/header.tex`.
 
 ## Troubleshooting
 
@@ -150,11 +157,15 @@ Install Pandoc and a TeX Live distribution that includes XeLaTeX, then ensure `p
 
 ### Font not found (Arial)
 
-Install Arial or change the Makefile's `mainfont` variable to a font installed on your system. For example:
+Install Arial or change the `mainfont` setting in `md_to_pdf/Makefile` to a font installed on your system. For example:
 
 ```make
 --variable=mainfont:"Liberation Sans"
 ```
+
+### Missing characters in code blocks
+
+The default monospace font is DejaVu Sans Mono. Install it or set `PDF_MONOFONT` to an installed monospace font that supports the characters in your document.
 
 ### The input document cannot be parsed or produces empty output
 
@@ -170,14 +181,14 @@ Install the TeX Live package that provides the missing LaTeX package. On Ubuntu/
 |-------------------------|--------------------------------------------------------------|
 | `convert_doc.py`        | Extracts MIME/HTML content and images and generates Markdown |
 | `convert_doc_to_pdf.sh` | Runs the full DOC-to-PDF pipeline                            |
-| `Makefile`              | Configures and runs Markdown-to-PDF generation               |
-| `header.tex`            | LaTeX packages and document styling                          |
+| `Makefile`              | Delegates Markdown-to-PDF generation to the submodule        |
+| `md_to_pdf/`            | Git submodule for standalone Markdown-to-PDF generation     |
 
 ## Limitations
 
 - Only MIME/HTML-based `.doc` inputs are supported by the current parser; ordinary binary `.doc` files are not guaranteed to work.
 - The converter expects an HTML part encoded in UTF-8 (with replacement for invalid byte sequences).
-- PDF generation requires a working XeLaTeX installation and an available font matching the Makefile's configured main font.
+- PDF generation requires a working XeLaTeX installation and available fonts matching the main and monospace font settings in `md_to_pdf/Makefile`.
 - The project does not currently provide a Windows-native wrapper, automated test suite, or dependency lockfile.
 
 ## Tested on:
