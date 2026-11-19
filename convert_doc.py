@@ -256,26 +256,47 @@ def convert_doc(doc_path):
     # 2. Unescape images \![ -> ![
     md_output = re.sub(r'\\!\[', '![', md_output)
 
-    # 3. Clean TOC anchor links to point to GitHub-compatible markdown heading slugs
+    # The exported TOC keeps Confluence IDs, while Markdown/Pandoc headings use
+    # slugs derived from the visible heading text. Rewrite the first contiguous
+    # block of linked list items (the TOC) to use the matching heading slugs.
     def slugify(title):
-        s = title.lower()
-        s = re.sub(r'[^\w\s-]', '', s)
-        s = re.sub(r'\s+', '-', s)
-        return s.strip('-')
+        slug = re.sub(r'[^\w\s-]', '', title.lower())
+        slug = re.sub(r'\s+', '-', slug)
+        return slug.strip('-')
 
-    def fix_toc_link(m):
-        title = m.group(1)
-        slug = slugify(title)
-        return f'[{title}](#{slug})'
+    lines = md_output.splitlines()
+    toc_item = re.compile(r'^(\s*(?:[-*+]|\d+[.)])\s+)\[([^\]]*)\]\(#[^)]+\)\s*$')
+    index = 0
+    while index < len(lines):
+        if not toc_item.match(lines[index]):
+            index += 1
+            continue
 
-    # TOC links usually appear before the document's first level-one heading.
-    first_heading = re.search(r"(?m)^#\s+", md_output)
-    toc_end_idx = first_heading.start() if first_heading else -1
-    if toc_end_idx > 0:
-        toc_part = md_output[:toc_end_idx]
-        rest_part = md_output[toc_end_idx:]
-        toc_part_fixed = re.sub(r'\[([^\]]+)\]\(#[^\)]+\)', fix_toc_link, toc_part)
-        md_output = toc_part_fixed + rest_part
+        end = index
+        while end < len(lines) and toc_item.match(lines[end]):
+            end += 1
+        if end - index >= 2:
+            rewritten = []
+            for line in lines[index:end]:
+                match = toc_item.match(line)
+                indent, title = match.groups()
+                if title.strip():
+                    rewritten.append(f'{indent}[{title}](#{slugify(title)})')
+            lines[index:end] = rewritten
+            break
+        index = end
+    md_output = '\n'.join(lines)
+
+    # Explicit header IDs make these targets available to Pandoc's LaTeX writer,
+    # even when the source document's export did not preserve heading IDs.
+    header_line = re.compile(r'^(#{1,6})\s+(.+?)\s*$')
+    for line_number, line in enumerate(lines):
+        heading = header_line.match(line)
+        if heading and not re.search(r'\s+\{#[^}]+\}\s*$', heading.group(2)):
+            heading_id = slugify(heading.group(2))
+            if heading_id:
+                lines[line_number] = f'{heading.group(1)} {heading.group(2)} {{#{heading_id}}}'
+    md_output = '\n'.join(lines)
 
     # 4. Remove standalone backslash lines
     md_output = re.sub(r'^\s*\\\s*$', '', md_output, flags=re.MULTILINE)
