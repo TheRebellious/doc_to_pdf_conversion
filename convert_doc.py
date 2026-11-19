@@ -265,7 +265,7 @@ def convert_doc(doc_path):
         return slug.strip('-')
 
     lines = md_output.splitlines()
-    toc_item = re.compile(r'^(\s*(?:[-*+]|\d+[.)])\s+)\[([^\]]*)\]\(#[^)]+\)\s*$')
+    toc_item = re.compile(r'^(\s*(?:[-*+]|\d+[.)])\s+)\[([^\]]*)\]\(#.*\)\s*$')
     index = 0
     while index < len(lines):
         if not toc_item.match(lines[index]):
